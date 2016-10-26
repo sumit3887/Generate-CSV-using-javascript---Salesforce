@@ -1,0 +1,72 @@
+/**
+ * Controller that contains the methods required to genetrate CSV file.
+ *
+ * @author	Sumit Kumar Singh
+ *
+ */
+
+public class GenerateCSVContorller {
+    
+    public List<Contact> conList { get; set; }
+    
+    /**
+     * Class Constructor
+     */
+    public GenerateCSVContorller() {
+        conList = [SELECT id, firstName, lastName FROM Contact LIMIT 10];
+    }
+    
+    /**
+     * This method returns the data in JSON format.
+     * @param	index	Used to calculate the upper and lower limit
+     * @param	batchSize	Number of records to be retrieve in one AJAX call.
+     *
+     */
+    @remoteAction
+    @readOnly
+    public static string getData(Integer index, Integer batchSize) {
+        List<JsonWrapper> JsonWrapperList = new List<JsonWrapper>();
+        try {
+        	Integer upperLimit = index * batchSize;
+            Integer lowerLimit = (index-1) * batchSize;
+            Integer counter    = 0;
+            
+            for(Contact c : [Select id, firstName, lastName from Contact LIMIT : upperLimit]) {
+                if(counter >= lowerlimit && counter < upperLimit) {
+                    JsonWrapperList.add(new JsonWrapper(c.id, c.firstName, c.LastName));    
+                }
+                if(counter == upperLimit) {
+                    break;
+                }
+                counter++;
+            }    
+        } catch (Exception e) {
+            throw e;
+        }
+        return JSON.serialize(JsonWrapperList);
+    }
+    
+    /**
+     * This method returns number of record in a Object.
+     *
+     */
+    @remoteAction
+    @readOnly
+    public static Integer getContactRecordCount() {
+        return [Select count() from Contact];
+    }
+    
+    /**
+     * wrapper class
+     */
+    public class JsonWrapper {
+        String id;
+        String firstName;
+        String lastName;
+        public JsonWrapper(String id, String firstName, String lastName) {
+            this.id = id;
+            this.firstName = firstName;
+            this.lastName = lastName; 
+        } 
+    }
+}

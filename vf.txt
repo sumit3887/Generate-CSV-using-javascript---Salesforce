@@ -1,0 +1,203 @@
+<apex:page controller="GenerateCSVContorller" standardStylesheets="true">
+<apex:includeScript value="{!URLFOR($Resource.wxresources,'jQuery-2.1.4/jquery-2.1.4.js')}"/>    
+    <style>
+        .doNotDisplay {
+            display : none;
+        }   
+    </style>
+    
+    <script>
+        
+         j$ = jQuery.noConflict();
+          
+        /**
+         * This method is called on 'Generate CSV' button click.
+         */
+        function generateCSV() {
+            j$("#expIdJS").css("display","none");
+            j$("#loading").css("display","inline");  
+            try {
+                GenerateCSVContorller.getContactRecordCount ( function(result, event) {
+                     if(event.type != 'exception') { 
+                         var index       = 1;
+                         var batchSize   = 150; 
+                         var noOfCall    = result/batchSize;
+                         j$("#csvString").html('');
+                         j$("#csvString").html('Id, First Name, Last Name \r\n');
+                         try {
+                             getJsonData(index, noOfCall, batchSize); 
+                         } catch(err) {
+                             notifyFailure(); 
+                         }                  
+                     } else {
+                         notifyFailure();
+                     }    
+                }); 
+            } catch (err) {	
+                console.log(err);
+            	notifyFailure();
+            }
+        } 
+        
+        /**
+         * This method gets the data from the controller in Json form.
+         * 
+         *
+         */
+        function getJsonData(index, noOfCall, batchSize) {
+            /* Ajax/Remote call */
+            GenerateCSVContorller.getData (index, batchSize, function(result, event) {
+                if(event.type != 'exception') { 
+                    index++; 
+                    var CSVString = j$("#csvString").text(); 
+                    CSVString = CSVString + getValidCSVString(result);
+                    if(index-1 <= noOfCall) {
+                        getJsonData(index, noOfCall, batchSize);
+                    } else {
+                        j$("#expIdJS").css("display","inline");
+            			j$("#loading").css("display","none");
+                        downloadFile(CSVString);
+                    } 
+                    j$("#csvString").html(CSVString); 
+                } else {               
+                    notifyFailure();
+                }                     
+            });
+        }
+         
+        /**
+         * This method returns the browser name.
+         */      
+        function getBrowserName() {          
+            if (navigator.userAgent.search("Chrome") >= 0) {
+                return 'CHROME';
+            }
+            else if (navigator.userAgent.search("Firefox") >= 0) {
+                return 'FIREFOX';
+            }
+            else if (navigator.userAgent.search("Safari") >= 0 && navigator.userAgent.search("Chrome") < 0) {
+                return 'SAFARI';
+            }
+            else if (navigator.userAgent.search("Opera") >= 0) {
+                return 'OPERA';
+            }
+            else {
+                return 'OTHER BROWSER';
+            }
+        }
+        
+         /**
+         * This downloads the CSV file.
+         * @param	 CSV	CSV string in row form. 
+         */ 
+        function downloadFile(CSV) { 
+            try {
+                var fileName =  "FCS.csv";
+                var browserName = getBrowserName();
+                if(getBrowserName() == 'SAFARI') {
+                    var uri = 'data:text/csv;charset=utf-8,' + escape(CSV);
+                    var link = document.createElement("a");
+                    link.href = uri;
+                    link.style = "visibility:hidden";
+                    link.download = fileName;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                } else if (browserName == 'CHROME' || browserName == 'FIREFOX' || browserName == 'OPERA') {
+                    var csvData = new Blob([CSV], { type: 'text/csv' });
+                    var link = document.createElement("a"); 
+                    link.setAttribute("href", window.URL.createObjectURL(csvData));
+                    link.setAttribute("download", fileName);
+                    link.innerHTML = "Export to CSV";
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link); 
+                } else {
+                    var IEwindow = window.open();
+                    IEwindow.document.write('sep=,\r\n' + CSV);
+                    IEwindow.document.close();
+                    IEwindow.document.execCommand('SaveAs', true, fileName);
+                    IEwindow.close(); 
+                }
+            } catch(err) {
+                console.log(err);
+                notifyFailure();
+            }    
+        } 
+        
+        /**
+         * This method returns the CSV String.  
+         * @param	result    JSON String from Visualforce remote action call.
+         */
+        function getValidCSVString(result) { 
+            var CSV = '';  
+            try {                                             
+                j$("#jsonData").html(result); 
+                var jsonString = j$("#jsonData").html();
+                jsonString = eval( "(" + jsonString + ")" );
+                j$.each( jsonString, function( key, value ) {
+                  var row = '';
+                  row += getValidCellData(value.id);
+                  row += getValidCellData(value.firstName);
+                  row += getValidCellData(value.lastName); 
+                  if(row != '') {
+                        row.slice(0, row.length-1);
+                        CSV += row + '\r\n';
+                    }  
+                });   
+            } catch(err) {
+                console.log(err); 
+                notifyFailure();
+            }  
+            return CSV; 
+        }
+        
+        /**
+         * This method returns the valid CSV cell data.  
+         * @param rawCellData   Data of a particualr cell in raw form.
+         *
+         */  
+        function getValidCellData(rawCellData) {  
+            var validColumnData = '';
+            try {
+                if((rawCellData != '') && (typeof rawCellData !== 'undefined' && typeof rawCellData == 'string')) {
+                    validColumnData = rawCellData.replace(/\s["]\s|\s["]|["]\s|["]/g,'""');
+                    validColumnData = validColumnData.replace(/\s[,]\s|\s[,]|[,]\s/g,',');
+                    // To decode all the HTML character
+                    elem = document.createElement('textarea');
+                    elem.innerHTML = validColumnData;
+                    validColumnData = elem.value;
+                } else {
+                    validColumnData = rawCellData;
+                }
+            } catch(err) {
+            	console.log(err); 
+                notifyFailure();    
+            }
+            return '"' + validColumnData + '"' + ',';    
+        } 
+        
+        /**
+         * This method is used to notify user if any error occured.
+         */
+        function notifyFailure() {
+            alert('Exception occured! Could not generate the CSV.');   
+            location.reload(); 
+        }
+        
+    </script>
+    
+    <apex:form>
+        <div class="doNotDisplay" id="jsonData"></div>
+        <div class="doNotDisplay" id="csvString"></div>
+        <apex:pageBlock title="Contacts">
+            <apex:pageBlockTable value="{!conList}" var="con" title="Contacts">
+                <apex:column value="{!con.firstName}"/>
+                <apex:column value="{!con.lastName}"/>
+            </apex:pageBlockTable>  
+        </apex:pageBlock>
+        <button type="button" onclick="generateCSV()" style="cursor:pointer" id="expIdJS"> Generate CSV </button>
+		<div id="loading" class="doNotDisplay"> <img  src="/img/loading.gif"/> </div>        
+    </apex:form>
+   
+</apex:page>
