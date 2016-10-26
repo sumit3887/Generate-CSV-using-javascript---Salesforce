@@ -12,7 +12,7 @@ Steps -
 3) You are done! Go to the visualforce page.<br/>
 
 
-This is my first project on GIT. If you fine some issue notify me @ gbu.sumit@gmail.com
+This is my first project on GIT. If you find any issues, notify me @ gbu.sumit@gmail.com
 
 
 
