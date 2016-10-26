@@ -7,9 +7,9 @@ http://sumitkumarsingh-developer-edition.ap2.force.com/apex/ar
 
 Steps -
 
-1) Upload jQuery in the static resource and use that in the visualforce page.
-2) Copy and paste the Visualfroce page and Controller. 
-3) You are done! Go to the visualforce page.
+1) Upload jQuery in the static resource and use that in the visualforce page. <br/>
+2) Copy and paste the Visualfroce page and Controller. <br/>
+3) You are done! Go to the visualforce page.<br/>
 
 
 
