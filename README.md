@@ -3,7 +3,7 @@ Contiains the components required to generate CSV. Purely java script implementa
 <br/>
 You can have demo at - 
 
-http://sumitkumarsingh-developer-edition.ap2.force.com/apex/ar
+http://sumitkumarsingh-developer-edition.ap7.force.com/
 
 Steps -
 
